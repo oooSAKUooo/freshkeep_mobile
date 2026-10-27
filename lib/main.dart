@@ -4,6 +4,7 @@ import 'package:intl/date_symbol_data_local.dart';
 
 import 'app.dart';
 import 'firebase_options.dart';
+import 'services/notification_service.dart';
 
 Future<void> main() async {
   // ต้องเรียกก่อนใช้ plugin ใด ๆ ที่คุยกับ native (เช่น Firebase) ก่อน runApp
@@ -11,6 +12,8 @@ Future<void> main() async {
 
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
   await initializeDateFormatting('th');
+  await NotificationService.instance.init();
+  await NotificationService.instance.requestPermission();
 
   runApp(const FreshKeepApp());
 }

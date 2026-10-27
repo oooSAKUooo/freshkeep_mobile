@@ -16,8 +16,7 @@ class MainShell extends StatelessWidget {
       body: navigationShell,
       floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
       floatingActionButton: FloatingActionButton(
-        // Phase 1 ยังไม่มีกล้อง จึงพาไปฟอร์มเพิ่มของโดยตรง (Phase 2 เปลี่ยนเป็น '/scan')
-        onPressed: () => context.push('/item/new'),
+        onPressed: () => context.push('/scan'),
         backgroundColor: AppColors.primary,
         foregroundColor: AppColors.onPrimary,
         elevation: 4,

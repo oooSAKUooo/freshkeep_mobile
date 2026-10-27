@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 
+import '../../models/category.dart';
 import '../../models/food_item.dart';
 import '../../services/item_service.dart';
 import '../../theme/app_colors.dart';
@@ -22,17 +23,64 @@ class _HomeScreenState extends State<HomeScreen> {
   // สร้าง stream ครั้งเดียวใน initState ไม่ใช่ใน build
   // ไม่งั้นทุกครั้งที่ rebuild จะเปิด listener กับ Firestore ใหม่
   late final Stream<List<FoodItem>> _itemsStream;
+  late final Stream<MonthStats> _statsStream;
+
+  // ตัวกรองทำฝั่งเครื่องบนรายการที่ stream ส่งมาแล้ว ไม่ query Firestore เพิ่ม
+  FoodCategory? _category; // null = ทั้งหมด
+  bool _isSearching = false;
+  String _query = '';
 
   @override
   void initState() {
     super.initState();
-    _itemsStream = ItemService().watchActiveItems();
+    final itemService = ItemService();
+    _itemsStream = itemService.watchActiveItems();
+    _statsStream = itemService.watchMonthStats();
+  }
+
+  void _toggleSearch() {
+    setState(() {
+      _isSearching = !_isSearching;
+      if (!_isSearching) _query = '';
+    });
+  }
+
+  List<FoodItem> _applyFilters(List<FoodItem> items) {
+    final query = _query.trim().toLowerCase();
+    return items.where((item) {
+      final matchCategory = _category == null || item.category == _category;
+      final matchName =
+          query.isEmpty || item.name.toLowerCase().contains(query);
+      return matchCategory && matchName;
+    }).toList();
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(centerTitle: false, title: const AppLogo.horizontal()),
+      appBar: AppBar(
+        centerTitle: false,
+        title: _isSearching
+            ? TextField(
+                autofocus: true,
+                onChanged: (value) => setState(() => _query = value),
+                decoration: const InputDecoration(
+                  hintText: 'ค้นหาชื่อสินค้า',
+                  border: InputBorder.none,
+                  enabledBorder: InputBorder.none,
+                  focusedBorder: InputBorder.none,
+                  filled: false,
+                ),
+              )
+            : const AppLogo.horizontal(),
+        actions: [
+          IconButton(
+            tooltip: _isSearching ? 'ปิดการค้นหา' : 'ค้นหา',
+            icon: Icon(_isSearching ? LucideIcons.x : LucideIcons.search),
+            onPressed: _toggleSearch,
+          ),
+        ],
+      ),
       // StreamBuilder สร้าง UI ใหม่ทุกครั้งที่ Firestore ส่งข้อมูลชุดใหม่มา
       body: StreamBuilder<List<FoodItem>>(
         stream: _itemsStream,
@@ -46,7 +94,16 @@ class _HomeScreenState extends State<HomeScreen> {
           if (!snapshot.hasData) {
             return const Center(child: CircularProgressIndicator());
           }
-          return _HomeContent(items: snapshot.data!);
+          final allItems = snapshot.data!;
+          return _HomeContent(
+            allItems: allItems,
+            items: _applyFilters(allItems),
+            isFiltering: _category != null || _query.trim().isNotEmpty,
+            selectedCategory: _category,
+            onCategoryChanged: (category) =>
+                setState(() => _category = category),
+            statsStream: _statsStream,
+          );
         },
       ),
     );
@@ -54,9 +111,21 @@ class _HomeScreenState extends State<HomeScreen> {
 }
 
 class _HomeContent extends StatelessWidget {
-  final List<FoodItem> items;
+  final List<FoodItem> allItems; // ทั้งหมดในตู้เย็น (ใช้กับการ์ดสรุป)
+  final List<FoodItem> items; // หลังกรองหมวด/ค้นหา (ใช้กับรายการ)
+  final bool isFiltering;
+  final FoodCategory? selectedCategory;
+  final ValueChanged<FoodCategory?> onCategoryChanged;
+  final Stream<MonthStats> statsStream;
 
-  const _HomeContent({required this.items});
+  const _HomeContent({
+    required this.allItems,
+    required this.items,
+    required this.isFiltering,
+    required this.selectedCategory,
+    required this.onCategoryChanged,
+    required this.statsStream,
+  });
 
   String _greeting() {
     final hour = DateTime.now().hour;
@@ -82,8 +151,30 @@ class _HomeContent extends StatelessWidget {
           style: textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w600),
         ),
         const SizedBox(height: 20),
-        _SummaryCard(items: items),
-        const SizedBox(height: 28),
+        _SummaryCard(items: allItems),
+        const SizedBox(height: 20),
+        SingleChildScrollView(
+          scrollDirection: Axis.horizontal,
+          child: Row(
+            children: [
+              ChoiceChip(
+                label: const Text('ทั้งหมด'),
+                selected: selectedCategory == null,
+                onSelected: (_) => onCategoryChanged(null),
+              ),
+              for (final category in FoodCategory.values) ...[
+                const SizedBox(width: 8),
+                ChoiceChip(
+                  avatar: Icon(category.icon, size: 18),
+                  label: Text(category.label),
+                  selected: selectedCategory == category,
+                  onSelected: (_) => onCategoryChanged(category),
+                ),
+              ],
+            ],
+          ),
+        ),
+        const SizedBox(height: 20),
         Row(
           children: [
             Text(
@@ -103,13 +194,18 @@ class _HomeContent extends StatelessWidget {
         ),
         const SizedBox(height: 12),
         if (items.isEmpty)
-          const Padding(
-            padding: EdgeInsets.only(top: 32),
-            child: _MessageView(
-              icon: LucideIcons.refrigerator,
-              message:
-                  'ยังไม่มีของในตู้เย็น\nกดปุ่มตรงกลางด้านล่างเพื่อเพิ่มของชิ้นแรก',
-            ),
+          Padding(
+            padding: const EdgeInsets.only(top: 32),
+            child: isFiltering
+                ? const _MessageView(
+                    icon: LucideIcons.searchX,
+                    message: 'ไม่พบรายการที่ตรงกับตัวกรอง',
+                  )
+                : const _MessageView(
+                    icon: LucideIcons.refrigerator,
+                    message:
+                        'ยังไม่มีของในตู้เย็น\nกดปุ่มตรงกลางด้านล่างเพื่อเพิ่มของชิ้นแรก',
+                  ),
           )
         else
           for (final item in items)
@@ -120,6 +216,15 @@ class _HomeContent extends StatelessWidget {
                 onTap: () => context.push('/item/${item.id}'),
               ),
             ),
+        const SizedBox(height: 16),
+        StreamBuilder<MonthStats>(
+          stream: statsStream,
+          builder: (context, snapshot) {
+            final stats = snapshot.data;
+            if (stats == null) return const SizedBox.shrink();
+            return _WasteCard(label: stats.wasteReducedLabel);
+          },
+        ),
       ],
     );
   }
@@ -239,6 +344,42 @@ class _SummaryCard extends StatelessWidget {
                   label: 'ด่วน ($urgentCount)',
                 ),
               ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// การ์ด "ลดขยะอาหารได้ X%" — ตัวเลขเดียวกับหน้า Profile (ใช้ MonthStats ตัวเดียวกัน)
+class _WasteCard extends StatelessWidget {
+  final String label;
+
+  const _WasteCard({required this.label});
+
+  @override
+  Widget build(BuildContext context) {
+    final textTheme = Theme.of(context).textTheme;
+    return Card(
+      color: AppColors.freshSoft,
+      child: Padding(
+        padding: const EdgeInsets.all(20),
+        child: Row(
+          children: [
+            const Icon(LucideIcons.leaf, color: AppColors.freshText),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Text(
+                'ลดขยะอาหารได้ (เดือนนี้)',
+                style: textTheme.bodyLarge?.copyWith(
+                  color: AppColors.freshText,
+                ),
+              ),
+            ),
+            Text(
+              label,
+              style: AppTheme.serif(fontSize: 28, color: AppColors.freshText),
             ),
           ],
         ),

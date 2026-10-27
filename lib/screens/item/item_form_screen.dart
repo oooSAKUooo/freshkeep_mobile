@@ -6,6 +6,7 @@ import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 import '../../models/category.dart';
 import '../../models/food_item.dart';
+import '../../models/item_prefill.dart';
 import '../../models/storage_location.dart';
 import '../../services/item_service.dart';
 import '../../theme/app_colors.dart';
@@ -17,8 +18,9 @@ import '../../widgets/field_label.dart';
 /// ใช้ทั้งเพิ่มของ ([itemId] = null) และแก้ไข ([itemId] = id ของ document)
 class ItemFormScreen extends StatefulWidget {
   final String? itemId;
+  final ItemPrefill? prefill; // เฉพาะโหมดเพิ่มที่มาจากหน้า Scan
 
-  const ItemFormScreen({super.key, this.itemId});
+  const ItemFormScreen({super.key, this.itemId, this.prefill});
 
   bool get isEditing => itemId != null;
 
@@ -40,7 +42,9 @@ class _ItemFormScreenState extends State<ItemFormScreen> {
 
   @override
   Widget build(BuildContext context) {
-    if (!widget.isEditing) return const _ItemForm(initialItem: null);
+    if (!widget.isEditing) {
+      return _ItemForm(initialItem: null, prefill: widget.prefill);
+    }
 
     return FutureBuilder<FoodItem?>(
       future: _loadItem,
@@ -66,8 +70,9 @@ class _ItemFormScreenState extends State<ItemFormScreen> {
 
 class _ItemForm extends StatefulWidget {
   final FoodItem? initialItem;
+  final ItemPrefill? prefill;
 
-  const _ItemForm({required this.initialItem});
+  const _ItemForm({required this.initialItem, this.prefill});
 
   @override
   State<_ItemForm> createState() => _ItemFormState();
@@ -92,7 +97,9 @@ class _ItemFormState extends State<_ItemForm> {
   @override
   void initState() {
     super.initState();
-    _nameController = TextEditingController(text: _initial?.name ?? '');
+    _nameController = TextEditingController(
+      text: _initial?.name ?? widget.prefill?.name ?? '',
+    );
     _category = _initial?.category ?? FoodCategory.other;
     _storage = _initial?.storage ?? StorageLocation.fridge;
     _quantity = _initial?.quantity ?? 1;
@@ -133,6 +140,8 @@ class _ItemFormState extends State<_ItemForm> {
             storage: _storage,
             quantity: _quantity,
             expiryDate: dateOnly(_expiryDate!),
+            barcode: widget.prefill?.barcode,
+            imageUrl: widget.prefill?.imageUrl,
             createdAt: now,
             updatedAt: now,
           ),
@@ -209,6 +218,10 @@ class _ItemFormState extends State<_ItemForm> {
         child: ListView(
           padding: const EdgeInsets.fromLTRB(20, 8, 20, 24),
           children: [
+            if (widget.prefill != null) ...[
+              _BarcodeChip(prefill: widget.prefill!),
+              const SizedBox(height: 12),
+            ],
             _Section(
               children: [
                 const FieldLabel('ชื่อสินค้า'),
@@ -310,6 +323,43 @@ class _ItemFormState extends State<_ItemForm> {
           ),
         ),
       ),
+    );
+  }
+}
+
+/// chip แสดงเลขบาร์โค้ดที่สแกนมา (+ ข้อความบอกว่าดึงข้อมูลจาก Open Food Facts ถ้าเจอสินค้า)
+class _BarcodeChip extends StatelessWidget {
+  final ItemPrefill prefill;
+
+  const _BarcodeChip({required this.prefill});
+
+  @override
+  Widget build(BuildContext context) {
+    final textTheme = Theme.of(context).textTheme;
+    return Wrap(
+      spacing: 8,
+      runSpacing: 8,
+      children: [
+        Chip(
+          avatar: const Icon(LucideIcons.barcode, size: 18),
+          label: Text(prefill.barcode),
+        ),
+        if (prefill.fromOpenFoodFacts)
+          Chip(
+            avatar: const Icon(
+              LucideIcons.circleCheck,
+              size: 18,
+              color: AppColors.freshText,
+            ),
+            backgroundColor: AppColors.freshSoft,
+            label: Text(
+              'ดึงข้อมูลจาก Open Food Facts',
+              style: textTheme.labelMedium?.copyWith(
+                color: AppColors.freshText,
+              ),
+            ),
+          ),
+      ],
     );
   }
 }

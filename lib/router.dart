@@ -4,12 +4,14 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
 import 'package:go_router/go_router.dart';
 
+import 'models/item_prefill.dart';
 import 'screens/auth/login_screen.dart';
 import 'screens/auth/register_screen.dart';
 import 'screens/home/home_screen.dart';
 import 'screens/item/item_detail_screen.dart';
 import 'screens/item/item_form_screen.dart';
 import 'screens/profile/profile_screen.dart';
+import 'screens/scan/scan_screen.dart';
 import 'widgets/main_shell.dart';
 
 final appRouter = GoRouter(
@@ -55,9 +57,12 @@ final appRouter = GoRouter(
     ),
 
     // หน้าที่กดเข้าไป (ไม่มี bottom nav) — '/item/new' ต้องอยู่ก่อน '/item/:id'
+    GoRoute(path: '/scan', builder: (context, state) => const ScanScreen()),
     GoRoute(
       path: '/item/new',
-      builder: (context, state) => const ItemFormScreen(),
+      // มาจากหน้า Scan จะส่งบาร์โค้ด/ชื่อ/รูปมาใน extra (กรอกเองจะเป็น null)
+      builder: (context, state) =>
+          ItemFormScreen(prefill: state.extra as ItemPrefill?),
     ),
     GoRoute(
       path: '/item/:id',

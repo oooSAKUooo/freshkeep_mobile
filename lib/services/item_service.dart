@@ -2,6 +2,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 
 import '../models/food_item.dart';
+import 'notification_service.dart';
 
 /// Firestore CRUD ของรายการในตู้เย็น
 /// ข้อมูลอยู่ที่ users/{uid}/items เพื่อให้แต่ละคนเห็นเฉพาะของตัวเอง
@@ -28,6 +29,39 @@ class ItemService {
         .map((snapshot) => snapshot.docs.map(FoodItem.fromFirestore).toList());
   }
 
+  /// ดึงครั้งเดียว — ใช้ตั้งแจ้งเตือนใหม่ทั้งหมดตอนเปลี่ยนค่าใน Profile
+  Future<List<FoodItem>> getActiveItems() async {
+    final snapshot = await _items
+        .where('status', isEqualTo: ItemStatus.active.name)
+        .get();
+    return snapshot.docs.map(FoodItem.fromFirestore).toList();
+  }
+
+  /// สถิติเดือนนี้: นับ consumed / discarded ที่ finishedAt อยู่ในเดือนนี้
+  /// query ด้วย finishedAt อย่างเดียว (range บน field เดียว ไม่ต้องสร้าง index เพิ่ม)
+  /// แล้วแยกสถานะฝั่งเครื่อง — ของ active มี finishedAt = null จึงไม่ถูกดึงมา
+  Stream<MonthStats> watchMonthStats() {
+    final now = DateTime.now();
+    final monthStart = DateTime(now.year, now.month);
+    return _items
+        .where(
+          'finishedAt',
+          isGreaterThanOrEqualTo: Timestamp.fromDate(monthStart),
+        )
+        .snapshots()
+        .map((snapshot) {
+          final items = snapshot.docs.map(FoodItem.fromFirestore);
+          return MonthStats(
+            consumed: items
+                .where((i) => i.status == ItemStatus.consumed)
+                .length,
+            discarded: items
+                .where((i) => i.status == ItemStatus.discarded)
+                .length,
+          );
+        });
+  }
+
   /// ติดตาม document เดียวแบบ realtime (หน้า Detail) — คืน null ถ้าถูกลบไปแล้ว
   Stream<FoodItem?> watchItem(String id) {
     return _items
@@ -44,16 +78,19 @@ class ItemService {
 
   // ---------- Create ----------
 
-  /// คืน id ของ document ใหม่ (Phase 2 จะใช้ตั้ง notification)
+  /// คืน id ของ document ใหม่ แล้วตั้งแจ้งเตือนของชิ้นนี้ (ใช้ id ที่ Firestore เพิ่งสร้าง)
   Future<String> addItem(FoodItem item) async {
     final ref = await _items.add(item.toMap());
+    await NotificationService.instance.scheduleForItem(
+      item.copyWith(id: ref.id),
+    );
     return ref.id;
   }
 
   // ---------- Update ----------
 
-  Future<void> updateItem(FoodItem item) {
-    return _items.doc(item.id).update({
+  Future<void> updateItem(FoodItem item) async {
+    await _items.doc(item.id).update({
       'name': item.name,
       'category': item.category.value,
       'storage': item.storage.value,
@@ -61,19 +98,41 @@ class ItemService {
       'expiryDate': Timestamp.fromDate(item.expiryDate),
       'updatedAt': Timestamp.now(),
     });
+    // วันหมดอายุอาจเปลี่ยน → ยกเลิกของเดิมแล้วตั้งใหม่
+    await NotificationService.instance.cancelForItem(item.id!);
+    await NotificationService.instance.scheduleForItem(item);
   }
 
   /// "กินหมดแล้ว" / "ทิ้ง" — ไม่ลบ document แต่เปลี่ยนสถานะ เพื่อเก็บไว้ทำสถิติ
-  Future<void> markFinished(String id, ItemStatus status) {
+  Future<void> markFinished(String id, ItemStatus status) async {
     final now = Timestamp.now();
-    return _items.doc(id).update({
+    await _items.doc(id).update({
       'status': status.name,
       'finishedAt': now,
       'updatedAt': now,
     });
+    await NotificationService.instance.cancelForItem(id);
   }
 
   // ---------- Delete ----------
 
-  Future<void> deleteItem(String id) => _items.doc(id).delete();
+  Future<void> deleteItem(String id) async {
+    await _items.doc(id).delete();
+    await NotificationService.instance.cancelForItem(id);
+  }
+}
+
+/// สถิติของเดือนนี้ (ใช้ทั้งหน้า Home และ Profile เพื่อให้ตัวเลขตรงกัน)
+class MonthStats {
+  final int consumed;
+  final int discarded;
+
+  const MonthStats({required this.consumed, required this.discarded});
+
+  /// ลดขยะได้ = consumed / (consumed + discarded) × 100 — ถ้าเป็น 0 ทั้งคู่ แสดง "–"
+  String get wasteReducedLabel {
+    final total = consumed + discarded;
+    if (total == 0) return '–';
+    return '${(consumed / total * 100).round()}%';
+  }
 }

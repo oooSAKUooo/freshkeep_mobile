@@ -86,6 +86,7 @@ class FoodItem {
   }
 
   FoodItem copyWith({
+    String? id,
     String? name,
     FoodCategory? category,
     StorageLocation? storage,
@@ -94,7 +95,7 @@ class FoodItem {
     DateTime? updatedAt,
   }) {
     return FoodItem(
-      id: id,
+      id: id ?? this.id,
       name: name ?? this.name,
       barcode: barcode,
       imageUrl: imageUrl,
