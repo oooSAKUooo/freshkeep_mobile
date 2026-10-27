@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 import '../theme/app_colors.dart';
 import 'app_logo.dart';
 
-/// โครงหน้าร่วมของ Login / Register: โลโก้ + การ์ดฟอร์ม + ลิงก์ด้านล่าง
 class AuthLayout extends StatelessWidget {
   final String title;
   final String subtitle;

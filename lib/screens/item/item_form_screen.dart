@@ -418,7 +418,6 @@ class _ItemFormState extends State<_ItemForm> {
           ],
         ),
       ),
-      // ปุ่มบันทึกติดด้านล่างเสมอ
       bottomNavigationBar: SafeArea(
         child: Padding(
           padding: const EdgeInsets.fromLTRB(20, 8, 20, 12),
@@ -537,7 +536,6 @@ class _BarcodeChip extends StatelessWidget {
   }
 }
 
-/// การ์ดสีขาวครอบกลุ่มช่องกรอก
 class _Section extends StatelessWidget {
   final List<Widget> children;
 

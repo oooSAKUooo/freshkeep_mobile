@@ -2,13 +2,38 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 
+import '../services/item_service.dart';
+import '../services/notification_service.dart';
 import '../theme/app_colors.dart';
 
-/// โครงหน้าแท็บ: เนื้อหาของแท็บที่เลือก + bottom nav (หน้าหลัก · สแกน · โปรไฟล์)
-class MainShell extends StatelessWidget {
+class MainShell extends StatefulWidget {
   final StatefulNavigationShell navigationShell;
 
   const MainShell({super.key, required this.navigationShell});
+
+  @override
+  State<MainShell> createState() => _MainShellState();
+}
+
+class _MainShellState extends State<MainShell> {
+  @override
+  void initState() {
+    super.initState();
+    _restoreNotifications();
+  }
+
+  /// เข้าแอป/login ใหม่ → ตั้งแจ้งเตือนใหม่จากรายการ active
+  /// (ตอน logout เรายกเลิกแจ้งเตือนทั้งหมดไปแล้ว จึงต้องตั้งกลับมา)
+  Future<void> _restoreNotifications() async {
+    try {
+      final activeItems = await ItemService().getActiveItems();
+      await NotificationService.instance.rescheduleAll(activeItems);
+    } catch (_) {
+      // ตั้งไม่สำเร็จไม่ควรขัดการใช้งานแอป
+    }
+  }
+
+  StatefulNavigationShell get navigationShell => widget.navigationShell;
 
   @override
   Widget build(BuildContext context) {

@@ -11,10 +11,8 @@ DateTime daysFromToday(int days) {
   return DateTime(now.year, now.month, now.day + days);
 }
 
-/// เช่น "20 ต.ค. 2026"
 String formatShortDate(DateTime date) =>
     DateFormat('d MMM y', 'th').format(date);
 
-/// เช่น "วันพฤหัสบดีที่ 24 ตุลาคม"
 String formatFullDayDate(DateTime date) =>
     DateFormat("EEEE'ที่' d MMMM", 'th').format(date);

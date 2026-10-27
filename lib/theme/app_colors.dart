@@ -20,7 +20,6 @@ class AppColors {
   static const divider = Color(0xFFE5E2DC);
   static const shadow = Color(0x14000000);
 
-  // หน้าสแกน: พื้นมืดโปร่งทับกล้อง
   static const scrim = Color(0x99000000);
 
   static const error = Color(0xFFBA1A1A);

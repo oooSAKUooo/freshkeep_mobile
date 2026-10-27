@@ -268,7 +268,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
                             ),
                           ),
                   ),
-                  // ไอคอนกล้องเล็ก ๆ บอกว่าแตะเพื่อเปลี่ยนรูปได้
                   Positioned(
                     right: 0,
                     bottom: 0,
@@ -357,7 +356,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 }
 
-/// การ์ดสถิติเดือนนี้: กินหมด / ทิ้ง / ลดขยะได้ X%
 class _StatsCard extends StatelessWidget {
   final MonthStats? stats;
   final bool hasError;
@@ -369,14 +367,21 @@ class _StatsCard extends StatelessWidget {
     final textTheme = Theme.of(context).textTheme;
 
     Widget number(String label, String value, Color color) => Expanded(
-      child: Column(
-        children: [
-          Text(value, style: AppTheme.serif(fontSize: 36, color: color)),
-          Text(
-            label,
-            style: textTheme.bodyMedium?.copyWith(color: AppColors.textMuted),
-          ),
-        ],
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 16),
+        decoration: BoxDecoration(
+          color: AppColors.surfaceMuted,
+          borderRadius: BorderRadius.circular(AppTheme.radius),
+        ),
+        child: Column(
+          children: [
+            Text(value, style: AppTheme.serif(fontSize: 36, color: color)),
+            Text(
+              label,
+              style: textTheme.bodyMedium?.copyWith(color: AppColors.textMuted),
+            ),
+          ],
+        ),
       ),
     );
 
@@ -403,11 +408,16 @@ class _StatsCard extends StatelessWidget {
             else ...[
               Row(
                 children: [
-                  number('กินหมด', '${stats!.consumed}', AppColors.freshText),
+                  number(
+                    'กินหมดแล้ว',
+                    '${stats!.consumed}',
+                    AppColors.freshText,
+                  ),
+                  const SizedBox(width: 12),
                   number('ทิ้ง', '${stats!.discarded}', AppColors.urgentText),
                 ],
               ),
-              const SizedBox(height: 16),
+              const SizedBox(height: 12),
               Container(
                 width: double.infinity,
                 padding: const EdgeInsets.all(16),
@@ -415,23 +425,40 @@ class _StatsCard extends StatelessWidget {
                   color: AppColors.freshSoft,
                   borderRadius: BorderRadius.circular(AppTheme.radius),
                 ),
-                child: Row(
+                child: Column(
                   children: [
-                    const Icon(LucideIcons.leaf, color: AppColors.freshText),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Text(
-                        'ลดขยะอาหารได้',
-                        style: textTheme.bodyLarge?.copyWith(
+                    Row(
+                      children: [
+                        const Icon(
+                          LucideIcons.leaf,
                           color: AppColors.freshText,
                         ),
-                      ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Text(
+                            'ลดขยะอาหารได้',
+                            style: textTheme.bodyLarge?.copyWith(
+                              color: AppColors.freshText,
+                            ),
+                          ),
+                        ),
+                        Text(
+                          stats!.wasteReducedLabel,
+                          style: AppTheme.serif(
+                            fontSize: 28,
+                            color: AppColors.freshText,
+                          ),
+                        ),
+                      ],
                     ),
-                    Text(
-                      stats!.wasteReducedLabel,
-                      style: AppTheme.serif(
-                        fontSize: 28,
-                        color: AppColors.freshText,
+                    const SizedBox(height: 12),
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(999),
+                      child: LinearProgressIndicator(
+                        value: stats!.wasteReducedFraction,
+                        minHeight: 8,
+                        backgroundColor: AppColors.surface,
+                        color: AppColors.primary,
                       ),
                     ),
                   ],
@@ -445,7 +472,6 @@ class _StatsCard extends StatelessWidget {
   }
 }
 
-/// ตั้งค่าการแจ้งเตือน: เปิด/ปิด + แจ้งล่วงหน้า 1 / 2 / 3 วัน
 class _SettingsCard extends StatefulWidget {
   final int initialDaysBefore;
   final bool initialEnabled;
@@ -469,7 +495,6 @@ class _SettingsCardState extends State<_SettingsCard> {
   late bool _enabled = widget.initialEnabled;
   late TimeOfDay _time = widget.initialTime;
 
-  /// ตัวเลือกเวลาแบบล้อหมุนของ iOS ใน bottom sheet (24 ชั่วโมง)
   Future<void> _pickTime() async {
     var selected = _time;
     final confirmed = await showModalBottomSheet<bool>(
@@ -583,7 +608,6 @@ class _SettingsCardState extends State<_SettingsCard> {
               enabled: _enabled,
               leading: const Icon(LucideIcons.clock),
               title: const Text('เวลาแจ้งเตือน'),
-              // รูปแบบ 24 ชั่วโมงเสมอ เช่น 09:00
               trailing: Text(
                 '${_time.hour.toString().padLeft(2, '0')}:${_time.minute.toString().padLeft(2, '0')} น.',
                 style: textTheme.titleMedium?.copyWith(

@@ -5,7 +5,6 @@ import '../theme/app_colors.dart';
 import 'category_icon.dart';
 import 'status_pill.dart';
 
-/// การ์ดของ 1 ชิ้นในรายการหน้า Home
 class ItemCard extends StatelessWidget {
   final FoodItem item;
   final VoidCallback onTap;

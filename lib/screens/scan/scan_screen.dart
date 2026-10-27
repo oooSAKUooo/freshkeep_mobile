@@ -85,7 +85,6 @@ class _ScanScreenState extends State<ScanScreen> {
             onDetect: _onDetect,
             errorBuilder: (context, error) => _CameraError(error: error),
           ),
-          // พื้นมืดโปร่งทั้งจอ เว้นกรอบสแกนตรงกลาง
           const _ScanOverlay(),
           SafeArea(
             child: Padding(
@@ -181,7 +180,6 @@ class _ScanScreenState extends State<ScanScreen> {
   }
 }
 
-/// พื้นมืดโปร่งพร้อมกรอบสแกนมุมโค้งตรงกลาง
 class _ScanOverlay extends StatelessWidget {
   const _ScanOverlay();
 
@@ -227,7 +225,6 @@ class _OverlayPainter extends CustomPainter {
   bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }
 
-/// แสดงเมื่อเปิดกล้องไม่ได้ (เช่น ผู้ใช้ปฏิเสธ permission)
 class _CameraError extends StatelessWidget {
   final MobileScannerException error;
 

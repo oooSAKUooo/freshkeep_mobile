@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 import '../theme/app_colors.dart';
 import '../utils/expiry_status.dart';
 
-/// pill แสดง "พรุ่งนี้" / "อีก N วัน" / "หมดอายุแล้ว" สีตามระดับความสด
 class StatusPill extends StatelessWidget {
   final ExpiryStatus status;
 

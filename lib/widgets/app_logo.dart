@@ -4,7 +4,6 @@ import 'package:lucide_icons_flutter/lucide_icons.dart';
 import '../theme/app_colors.dart';
 import '../theme/app_theme.dart';
 
-/// โลโก้ (ไอคอนต้นอ่อนในกรอบโค้ง) + wordmark "FreshKeep" ตัว Fraunces
 class AppLogo extends StatelessWidget {
   final double iconSize;
   final double fontSize;

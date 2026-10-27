@@ -6,6 +6,7 @@ import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 import '../../models/food_item.dart';
 import '../../services/item_service.dart';
+import '../../services/settings_service.dart';
 import '../../theme/app_colors.dart';
 import '../../theme/app_theme.dart';
 import '../../utils/date_format.dart';
@@ -195,6 +196,11 @@ class _DetailBody extends StatelessWidget {
                   label: 'บาร์โค้ด',
                   value: item.barcode ?? 'กรอกเอง',
                 ),
+                // ของที่กินหมด/ทิ้งแล้วไม่มีการแจ้งเตือน จึงแสดงเฉพาะของที่ยังอยู่ในตู้เย็น
+                if (item.status == ItemStatus.active) ...[
+                  const Divider(),
+                  const _NotificationRow(),
+                ],
               ],
             ),
           ),
@@ -204,7 +210,6 @@ class _DetailBody extends StatelessWidget {
   }
 }
 
-/// รูปสินค้าจาก Open Food Facts ถ้าไม่มีรูปใช้ไอคอนหมวดบนพื้นสีอ่อนแทน
 class _ProductImage extends StatelessWidget {
   final FoodItem item;
 
@@ -249,7 +254,6 @@ class _ProductImage extends StatelessWidget {
   }
 }
 
-/// แบนเนอร์ "หมดอายุในอีก N วัน" + แถบความสด
 /// ความสด = วันที่เหลือ / จำนวนวันทั้งหมดตั้งแต่เพิ่มของ (createdAt → expiryDate)
 class _FreshnessBanner extends StatelessWidget {
   final FoodItem item;
@@ -336,7 +340,6 @@ class _FreshnessBanner extends StatelessWidget {
   }
 }
 
-/// แสดงแทนแบนเนอร์ความสด เมื่อรายการถูกกด "กินหมดแล้ว" หรือ "ทิ้ง" ไปแล้ว
 class _FinishedBanner extends StatelessWidget {
   final FoodItem item;
 
@@ -362,6 +365,33 @@ class _FinishedBanner extends StatelessWidget {
             style: Theme.of(context).textTheme.titleMedium,
           ),
         ],
+      ),
+    );
+  }
+}
+
+/// แถว "การแจ้งเตือน" อ่านค่าที่ตั้งไว้ใน Profile (SharedPreferences เป็น async จึงใช้ FutureBuilder)
+class _NotificationRow extends StatelessWidget {
+  const _NotificationRow();
+
+  Future<String> _describe() async {
+    final settings = SettingsService();
+    if (!await settings.isNotificationsEnabled()) return 'ปิดอยู่';
+    final days = await settings.getDaysBefore();
+    final (hour, minute) = await settings.getNotifyTime();
+    final time =
+        '${hour.toString().padLeft(2, '0')}:${minute.toString().padLeft(2, '0')}';
+    return 'ล่วงหน้า $days วัน ($time น.)';
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return FutureBuilder<String>(
+      future: _describe(),
+      builder: (context, snapshot) => _InfoRow(
+        icon: LucideIcons.bell,
+        label: 'การแจ้งเตือน',
+        value: snapshot.data ?? '...',
       ),
     );
   }

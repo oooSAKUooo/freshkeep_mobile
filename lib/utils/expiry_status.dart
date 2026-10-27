@@ -29,7 +29,6 @@ class ExpiryStatus {
     return ExpiryLevel.fresh;
   }
 
-  /// ข้อความสั้นสำหรับ pill ในรายการ
   String get label {
     if (daysLeft < 0) return 'หมดอายุแล้ว';
     if (daysLeft == 0) return 'วันนี้';
@@ -37,7 +36,6 @@ class ExpiryStatus {
     return 'อีก $daysLeft วัน';
   }
 
-  /// ข้อความยาวสำหรับแบนเนอร์หน้า Detail
   String get bannerText {
     if (daysLeft < 0) return 'หมดอายุแล้ว ${-daysLeft} วัน';
     if (daysLeft == 0) return 'หมดอายุวันนี้';

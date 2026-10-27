@@ -4,7 +4,6 @@ import '../models/category.dart';
 import '../theme/app_colors.dart';
 import '../utils/expiry_status.dart';
 
-/// ไอคอนหมวดหมู่บนพื้นสีอ่อนตามระดับความสด
 class CategoryIcon extends StatelessWidget {
   final FoodCategory category;
   final ExpiryLevel level;

@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 
 import '../theme/app_colors.dart';
 
-/// ป้ายชื่อเหนือช่องกรอก (ดีไซน์วาง label ไว้นอกช่อง)
 class FieldLabel extends StatelessWidget {
   final String text;
   final Widget? trailing;

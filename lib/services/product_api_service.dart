@@ -3,7 +3,6 @@ import 'dart:convert';
 
 import 'package:http/http.dart' as http;
 
-/// ข้อมูลสินค้าที่ดึงจาก Open Food Facts
 class ProductInfo {
   final String name;
   final String? imageUrl;

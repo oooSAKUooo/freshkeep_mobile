@@ -130,6 +130,12 @@ class MonthStats {
 
   const MonthStats({required this.consumed, required this.discarded});
 
+  /// สัดส่วน 0.0–1.0 สำหรับแถบความคืบหน้า (ไม่มีข้อมูล = 0)
+  double get wasteReducedFraction {
+    final total = consumed + discarded;
+    return total == 0 ? 0 : consumed / total;
+  }
+
   /// ลดขยะได้ = consumed / (consumed + discarded) × 100 — ถ้าเป็น 0 ทั้งคู่ แสดง "–"
   String get wasteReducedLabel {
     final total = consumed + discarded;

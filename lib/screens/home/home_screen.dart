@@ -139,7 +139,6 @@ class _HomeContent extends StatelessWidget {
     final textTheme = Theme.of(context).textTheme;
 
     return ListView(
-      // เว้นที่ด้านล่างให้ปุ่มสแกนที่ยื่นขึ้นมา
       padding: const EdgeInsets.fromLTRB(20, 8, 20, 48),
       children: [
         Text(
@@ -230,7 +229,6 @@ class _HomeContent extends StatelessWidget {
   }
 }
 
-/// การ์ดสรุป: จำนวนของ, จำนวนที่ใกล้หมดอายุ และแถบสัดส่วน สด / ใกล้หมด / ด่วน
 class _SummaryCard extends StatelessWidget {
   final List<FoodItem> items;
 
