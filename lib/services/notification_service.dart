@@ -15,7 +15,6 @@ class NotificationService {
   NotificationService._();
   static final NotificationService instance = NotificationService._();
 
-  static const _notifyHour = 9;
   static const _channelId = 'expiry_reminder';
 
   final _plugin = FlutterLocalNotificationsPlugin();
@@ -68,20 +67,22 @@ class NotificationService {
   /// notification ID = hashCode ของ itemId (บังคับให้เป็นบวก 31 บิต ตามที่ plugin ต้องการ)
   int _idFor(String itemId) => itemId.hashCode & 0x7FFFFFFF;
 
-  /// ตั้งเตือน 09:00 ของวัน (expiryDate − N วัน)
+  /// ตั้งเตือนตามเวลาที่ผู้ใช้เลือก (ค่าเริ่มต้น 09:00) ของวัน (expiryDate − N วัน)
   /// ถ้าปิดการแจ้งเตือนอยู่ หรือเวลานั้นผ่านไปแล้ว จะไม่ตั้ง
   Future<void> scheduleForItem(FoodItem item) async {
     if (!_initialized || item.id == null) return;
     if (!await _settings.isNotificationsEnabled()) return;
 
     final daysBefore = await _settings.getDaysBefore();
+    final (hour, minute) = await _settings.getNotifyTime();
     final expiry = item.expiryDate;
     final scheduled = tz.TZDateTime(
       tz.local,
       expiry.year,
       expiry.month,
       expiry.day - daysBefore,
-      _notifyHour,
+      hour,
+      minute,
     );
     if (!scheduled.isAfter(tz.TZDateTime.now(tz.local))) return;
 

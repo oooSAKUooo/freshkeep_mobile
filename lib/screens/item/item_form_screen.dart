@@ -1,6 +1,11 @@
+import 'dart:io';
+
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:intl/intl.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 
@@ -8,12 +13,14 @@ import '../../models/category.dart';
 import '../../models/food_item.dart';
 import '../../models/item_prefill.dart';
 import '../../models/storage_location.dart';
+import '../../services/image_storage_service.dart';
 import '../../services/item_service.dart';
 import '../../theme/app_colors.dart';
 import '../../theme/app_theme.dart';
 import '../../utils/date_format.dart';
 import '../../utils/validators.dart';
 import '../../widgets/field_label.dart';
+import '../../widgets/local_image.dart';
 
 /// ใช้ทั้งเพิ่มของ ([itemId] = null) และแก้ไข ([itemId] = id ของ document)
 class ItemFormScreen extends StatefulWidget {
@@ -81,7 +88,12 @@ class _ItemForm extends StatefulWidget {
 class _ItemFormState extends State<_ItemForm> {
   final _formKey = GlobalKey<FormState>();
   final _itemService = ItemService();
+  final _imageStorage = ImageStorageService();
   late final TextEditingController _nameController;
+
+  // รูปที่ผู้ใช้เพิ่งเลือก/ถ่าย (ไฟล์ชั่วคราว ยังไม่ได้เก็บถาวรจนกว่าจะกดบันทึก)
+  String? _pickedImagePath;
+  bool _removeImage = false; // ผู้ใช้กดลบรูปเดิมที่เคยเลือกเอง
 
   // ค่าที่ได้จาก FormField แต่ละช่องตอน save()
   late FoodCategory _category;
@@ -112,6 +124,81 @@ class _ItemFormState extends State<_ItemForm> {
     super.dispose();
   }
 
+  Future<void> _pickImage(ImageSource source) async {
+    try {
+      // image_picker ย่อรูปให้ก่อน เพื่อไม่ให้ไฟล์ใหญ่เกินจำเป็น
+      final picked = await ImagePicker().pickImage(
+        source: source,
+        maxWidth: 1024,
+        imageQuality: 80,
+      );
+      if (picked == null) return; // ผู้ใช้ยกเลิก
+      setState(() {
+        _pickedImagePath = picked.path;
+        _removeImage = false;
+      });
+    } on PlatformException {
+      // มักเกิดเมื่อปฏิเสธสิทธิ์กล้อง/คลังรูป
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            'เปิดกล้องหรือคลังรูปไม่ได้ ตรวจสอบสิทธิ์ในการตั้งค่าเครื่อง',
+          ),
+        ),
+      );
+    }
+  }
+
+  bool get _hasLocalImage =>
+      _pickedImagePath != null ||
+      (!_removeImage && _initial?.imageFile != null);
+
+  void _showImageOptions() {
+    showModalBottomSheet<void>(
+      context: context,
+      showDragHandle: true,
+      builder: (sheetContext) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ListTile(
+              leading: const Icon(LucideIcons.camera),
+              title: const Text('ถ่ายรูป'),
+              onTap: () {
+                Navigator.pop(sheetContext);
+                _pickImage(ImageSource.camera);
+              },
+            ),
+            ListTile(
+              leading: const Icon(LucideIcons.image),
+              title: const Text('เลือกจากคลังรูป'),
+              onTap: () {
+                Navigator.pop(sheetContext);
+                _pickImage(ImageSource.gallery);
+              },
+            ),
+            if (_hasLocalImage)
+              ListTile(
+                leading: const Icon(LucideIcons.trash2, color: AppColors.error),
+                title: const Text(
+                  'ลบรูป',
+                  style: TextStyle(color: AppColors.error),
+                ),
+                onTap: () {
+                  Navigator.pop(sheetContext);
+                  setState(() {
+                    _pickedImagePath = null;
+                    _removeImage = true;
+                  });
+                },
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+
   Future<void> _save() async {
     // validate() เรียก validator ทุกช่อง ถ้ามีช่องไหนไม่ผ่าน จะแสดง error ใต้ช่องนั้นและหยุด
     if (!_formKey.currentState!.validate()) return;
@@ -121,10 +208,18 @@ class _ItemFormState extends State<_ItemForm> {
     setState(() => _isSaving = true);
     final now = DateTime.now();
     try {
+      // เก็บรูปที่เลือกใหม่ลงโฟลเดอร์ถาวรของแอป (ได้ชื่อไฟล์กลับมา)
+      final newImageFile = _pickedImagePath == null
+          ? null
+          : await _imageStorage.save(_pickedImagePath!);
+      final oldImageFile = _initial?.imageFile;
+
       if (_isEditing) {
         await _itemService.updateItem(
           _initial!.copyWith(
             name: _nameController.text.trim(),
+            imageFile: newImageFile,
+            removeImageFile: _removeImage && newImageFile == null,
             category: _category,
             storage: _storage,
             quantity: _quantity,
@@ -142,10 +237,15 @@ class _ItemFormState extends State<_ItemForm> {
             expiryDate: dateOnly(_expiryDate!),
             barcode: widget.prefill?.barcode,
             imageUrl: widget.prefill?.imageUrl,
+            imageFile: newImageFile,
             createdAt: now,
             updatedAt: now,
           ),
         );
+      }
+      // ลบไฟล์รูปเดิมที่ถูกแทนที่หรือถูกลบ (หลังบันทึก Firestore สำเร็จแล้วเท่านั้น)
+      if (_isEditing && (newImageFile != null || _removeImage)) {
+        await _imageStorage.delete(oldImageFile);
       }
       if (!mounted) return;
       ScaffoldMessenger.of(
@@ -153,12 +253,18 @@ class _ItemFormState extends State<_ItemForm> {
       ).showSnackBar(const SnackBar(content: Text('บันทึกแล้ว')));
       context.pop();
     } on FirebaseException {
-      if (!mounted) return;
-      setState(() => _isSaving = false);
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('บันทึกไม่สำเร็จ กรุณาลองใหม่')),
-      );
+      _showSaveError();
+    } on FileSystemException {
+      _showSaveError();
     }
+  }
+
+  void _showSaveError() {
+    if (!mounted) return;
+    setState(() => _isSaving = false);
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('บันทึกไม่สำเร็จ กรุณาลองใหม่')),
+    );
   }
 
   Future<void> _confirmDelete() async {
@@ -185,6 +291,7 @@ class _ItemFormState extends State<_ItemForm> {
     setState(() => _isSaving = true);
     try {
       await _itemService.deleteItem(_initial!.id!);
+      await _imageStorage.delete(_initial!.imageFile);
       if (!mounted) return;
       ScaffoldMessenger.of(
         context,
@@ -222,6 +329,13 @@ class _ItemFormState extends State<_ItemForm> {
               _BarcodeChip(prefill: widget.prefill!),
               const SizedBox(height: 12),
             ],
+            _ImagePickerCard(
+              pickedPath: _pickedImagePath,
+              savedFile: _removeImage ? null : _initial?.imageFile,
+              networkUrl: _initial?.imageUrl ?? widget.prefill?.imageUrl,
+              onTap: _showImageOptions,
+            ),
+            const SizedBox(height: 16),
             _Section(
               children: [
                 const FieldLabel('ชื่อสินค้า'),
@@ -322,6 +436,65 @@ class _ItemFormState extends State<_ItemForm> {
             label: const Text('บันทึก'),
           ),
         ),
+      ),
+    );
+  }
+}
+
+/// กรอบรูปสินค้าในฟอร์ม: แตะเพื่อถ่ายรูป/เลือกจากคลังรูป
+/// ลำดับที่แสดง: รูปที่เพิ่งเลือก → รูปที่เคยเลือกเองไว้ → รูปจาก Open Food Facts → ไอคอนว่าง
+class _ImagePickerCard extends StatelessWidget {
+  final String? pickedPath;
+  final String? savedFile;
+  final String? networkUrl;
+  final VoidCallback onTap;
+
+  const _ImagePickerCard({
+    required this.pickedPath,
+    required this.savedFile,
+    required this.networkUrl,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final textTheme = Theme.of(context).textTheme;
+    final empty = Column(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        const Icon(LucideIcons.imagePlus, size: 36, color: AppColors.textMuted),
+        const SizedBox(height: 8),
+        Text(
+          'เพิ่มรูปสินค้า',
+          style: textTheme.bodyMedium?.copyWith(color: AppColors.textMuted),
+        ),
+      ],
+    );
+
+    Widget networkOrEmpty() => networkUrl == null
+        ? empty
+        : CachedNetworkImage(
+            imageUrl: networkUrl!,
+            fit: BoxFit.contain,
+            placeholder: (context, url) =>
+                const Center(child: CircularProgressIndicator()),
+            errorWidget: (context, url, error) => empty,
+          );
+
+    final Widget content;
+    if (pickedPath != null) {
+      content = Image.file(File(pickedPath!), fit: BoxFit.cover);
+    } else if (savedFile != null) {
+      content = LocalImage(fileName: savedFile!, fallback: networkOrEmpty());
+    } else {
+      content = networkOrEmpty();
+    }
+
+    return Card(
+      clipBehavior: Clip.antiAlias,
+      child: InkWell(
+        onTap: onTap,
+        child: SizedBox(height: 180, width: double.infinity, child: content),
       ),
     );
   }

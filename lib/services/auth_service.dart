@@ -45,6 +45,22 @@ class AuthService {
     }
   }
 
+  /// เปลี่ยนชื่อที่แสดง: อัปเดตทั้ง Firebase Auth (displayName) และ users/{uid} ใน Firestore
+  Future<void> updateDisplayName(String displayName) async {
+    final user = _auth.currentUser!;
+    final name = displayName.trim();
+    try {
+      await user.updateDisplayName(name);
+      await user.reload();
+      // set + merge: ถ้า document โปรไฟล์ยังไม่มีจะสร้างให้ ถ้ามีอยู่แล้วแก้เฉพาะชื่อ
+      await _db.collection('users').doc(user.uid).set({
+        'displayName': name,
+      }, SetOptions(merge: true));
+    } on FirebaseException {
+      throw AuthException('บันทึกชื่อไม่สำเร็จ กรุณาลองใหม่');
+    }
+  }
+
   Future<void> logout() => _auth.signOut();
 
   String _thaiMessage(String code) {

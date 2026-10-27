@@ -10,6 +10,7 @@ import '../../theme/app_colors.dart';
 import '../../theme/app_theme.dart';
 import '../../utils/date_format.dart';
 import '../../widgets/category_icon.dart';
+import '../../widgets/local_image.dart';
 
 class ItemDetailScreen extends StatefulWidget {
   final String itemId;
@@ -209,6 +210,17 @@ class _ProductImage extends StatelessWidget {
 
   const _ProductImage({required this.item});
 
+  Widget _networkOrPlaceholder(Widget placeholder) {
+    if (item.imageUrl == null) return placeholder;
+    return CachedNetworkImage(
+      imageUrl: item.imageUrl!,
+      fit: BoxFit.contain,
+      placeholder: (context, url) =>
+          const Center(child: CircularProgressIndicator()),
+      errorWidget: (context, url, error) => placeholder,
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final placeholder = Center(
@@ -224,15 +236,14 @@ class _ProductImage extends StatelessWidget {
       child: Container(
         height: 220,
         color: AppColors.surface,
-        child: item.imageUrl == null
-            ? placeholder
-            : CachedNetworkImage(
-                imageUrl: item.imageUrl!,
+        // รูปที่ผู้ใช้เลือกเองมาก่อน → รูปจาก Open Food Facts → ไอคอนหมวด
+        child: item.imageFile != null
+            ? LocalImage(
+                fileName: item.imageFile!,
                 fit: BoxFit.contain,
-                placeholder: (context, url) =>
-                    const Center(child: CircularProgressIndicator()),
-                errorWidget: (context, url, error) => placeholder,
-              ),
+                fallback: _networkOrPlaceholder(placeholder),
+              )
+            : _networkOrPlaceholder(placeholder),
       ),
     );
   }

@@ -23,6 +23,7 @@ class FoodItem {
   final String name;
   final String? barcode;
   final String? imageUrl;
+  final String? imageFile; // ชื่อไฟล์รูปที่ผู้ใช้เลือกเอง (เก็บในเครื่อง)
   final FoodCategory category;
   final StorageLocation storage;
   final int quantity;
@@ -37,6 +38,7 @@ class FoodItem {
     required this.name,
     this.barcode,
     this.imageUrl,
+    this.imageFile,
     required this.category,
     required this.storage,
     required this.quantity,
@@ -57,6 +59,7 @@ class FoodItem {
       name: data['name'] as String? ?? '',
       barcode: data['barcode'] as String?,
       imageUrl: data['imageUrl'] as String?,
+      imageFile: data['imageFile'] as String?,
       category: FoodCategory.fromValue(data['category'] as String?),
       storage: StorageLocation.fromValue(data['storage'] as String?),
       quantity: (data['quantity'] as num?)?.toInt() ?? 1,
@@ -74,6 +77,7 @@ class FoodItem {
       'name': name,
       'barcode': barcode,
       'imageUrl': imageUrl,
+      'imageFile': imageFile,
       'category': category.value,
       'storage': storage.value,
       'quantity': quantity,
@@ -88,6 +92,8 @@ class FoodItem {
   FoodItem copyWith({
     String? id,
     String? name,
+    String? imageFile,
+    bool removeImageFile = false,
     FoodCategory? category,
     StorageLocation? storage,
     int? quantity,
@@ -99,6 +105,7 @@ class FoodItem {
       name: name ?? this.name,
       barcode: barcode,
       imageUrl: imageUrl,
+      imageFile: removeImageFile ? null : (imageFile ?? this.imageFile),
       category: category ?? this.category,
       storage: storage ?? this.storage,
       quantity: quantity ?? this.quantity,

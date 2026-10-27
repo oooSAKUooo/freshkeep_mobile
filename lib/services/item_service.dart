@@ -92,6 +92,7 @@ class ItemService {
   Future<void> updateItem(FoodItem item) async {
     await _items.doc(item.id).update({
       'name': item.name,
+      'imageFile': item.imageFile,
       'category': item.category.value,
       'storage': item.storage.value,
       'quantity': item.quantity,
