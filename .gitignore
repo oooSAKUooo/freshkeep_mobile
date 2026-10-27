@@ -43,3 +43,6 @@ app.*.map.json
 /android/app/debug
 /android/app/profile
 /android/app/release
+
+# โน้ตส่วนตัวสำหรับเตรียมนำเสนอ ไม่ commit
+docs/presentation-notes.md
