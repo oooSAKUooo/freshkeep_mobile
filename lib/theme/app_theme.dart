@@ -9,16 +9,33 @@ class AppTheme {
   static const double radius = 16;
   static const double cardRadius = 20;
 
-  /// ฟอนต์ serif (Fraunces) ใช้เฉพาะ wordmark "FreshKeep" และตัวเลขใหญ่
-  static TextStyle serif({
+  /// ฟอนต์ชื่อแอป "FreshKeep" — Manrope ตัวหนามาก ตัวอักษรชิดกันเล็กน้อย
+  static TextStyle brand({
     double fontSize = 24,
-    FontWeight fontWeight = FontWeight.w500,
+    Color color = AppColors.primary,
+  }) {
+    return GoogleFonts.manrope(
+      fontSize: fontSize,
+      fontWeight: FontWeight.w800,
+      letterSpacing: -0.5,
+      color: color,
+    );
+  }
+
+  /// ฟอนต์ตัวเลขใหญ่ (จำนวนของ, สถิติ, เปอร์เซ็นต์) — Manrope ตัวหนา
+  /// tabularFigures ทำให้ตัวเลขกว้างเท่ากัน ตัวเลขไม่ขยับตอนค่าเปลี่ยน
+  /// ถ้าอยากเปลี่ยนฟอนต์ตัวเลขทั้งแอป แก้ที่ GoogleFonts.manrope บรรทัดเดียวนี้
+  static TextStyle number({
+    double fontSize = 28,
+    FontWeight fontWeight = FontWeight.w700,
     Color color = AppColors.textPrimary,
   }) {
-    return GoogleFonts.fraunces(
+    return GoogleFonts.manrope(
       fontSize: fontSize,
       fontWeight: fontWeight,
       color: color,
+      fontFeatures: const [FontFeature.tabularFigures()],
+      height: 1.1,
     );
   }
 

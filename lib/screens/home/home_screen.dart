@@ -271,7 +271,7 @@ class _SummaryCard extends StatelessWidget {
             Row(
               crossAxisAlignment: CrossAxisAlignment.end,
               children: [
-                Text('${items.length}', style: AppTheme.serif(fontSize: 40)),
+                Text('${items.length}', style: AppTheme.number(fontSize: 40)),
                 const SizedBox(width: 6),
                 Padding(
                   padding: const EdgeInsets.only(bottom: 8),
@@ -280,7 +280,7 @@ class _SummaryCard extends StatelessWidget {
                 const SizedBox(width: 20),
                 Text(
                   '$nearExpiryCount',
-                  style: AppTheme.serif(
+                  style: AppTheme.number(
                     fontSize: 40,
                     color: AppColors.urgentText,
                   ),
@@ -377,7 +377,7 @@ class _WasteCard extends StatelessWidget {
             ),
             Text(
               label,
-              style: AppTheme.serif(fontSize: 28, color: AppColors.freshText),
+              style: AppTheme.number(fontSize: 28, color: AppColors.freshText),
             ),
           ],
         ),

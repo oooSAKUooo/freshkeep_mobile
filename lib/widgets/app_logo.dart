@@ -36,7 +36,7 @@ class AppLogo extends StatelessWidget {
     );
     final wordmark = Text(
       'FreshKeep',
-      style: AppTheme.serif(fontSize: fontSize, color: AppColors.primary),
+      style: AppTheme.brand(fontSize: fontSize),
     );
 
     return Flex(

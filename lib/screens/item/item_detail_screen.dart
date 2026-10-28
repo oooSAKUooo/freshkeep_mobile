@@ -308,7 +308,7 @@ class _FreshnessBanner extends StatelessWidget {
               ),
               Text(
                 '${(_freshness * 100).round()}%',
-                style: AppTheme.serif(fontSize: 28, color: strongColor),
+                style: AppTheme.number(fontSize: 28, color: strongColor),
               ),
             ],
           ),

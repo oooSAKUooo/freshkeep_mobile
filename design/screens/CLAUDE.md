@@ -71,7 +71,7 @@ Login → สแกนบาร์โค้ด → ดึงชื่อ/รู�
 | urgent | soft terracotta | ด่วน (≤ 1 วัน / หมดอายุแล้ว) |
 | divider | warm gray บาง | เส้นแบ่ง |
 
-- **ฟอนต์:** IBM Plex Sans Thai สำหรับ UI ทั้งหมด, Fraunces (serif) เฉพาะ wordmark "FreshKeep" และตัวเลขใหญ่ (ใช้ `google_fonts`)
+- **ฟอนต์:** IBM Plex Sans Thai สำหรับ UI ทั้งหมด, Manrope ตัวหนา สำหรับ wordmark "FreshKeep" (`AppTheme.brand()`) และตัวเลขใหญ่ (`AppTheme.number()`) (ใช้ `google_fonts`)
 - **มุมโค้ง:** 16–20 px
 - **ไอคอน:** เส้นบาง สไตล์ Lucide เท่านั้น (`lucide_icons_flutter` หรือ `Icons.*_outlined`) **ห้ามใช้อิโมจิในแอปเด็ดขาด**
 - เก็บสีและ theme ไว้ที่ `lib/theme/` ที่เดียว ห้าม hardcode สีในหน้าจอ

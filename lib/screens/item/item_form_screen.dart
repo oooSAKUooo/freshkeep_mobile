@@ -581,7 +581,7 @@ class _QuantityField extends FormField<int> {
                   child: Text(
                     '$value',
                     textAlign: TextAlign.center,
-                    style: AppTheme.serif(fontSize: 24),
+                    style: AppTheme.number(fontSize: 24),
                   ),
                 ),
                 IconButton.filledTonal(

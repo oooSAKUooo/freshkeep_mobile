@@ -240,7 +240,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     final email = _auth.currentUser?.email ?? '';
     final initials = Text(
       _initials(name.isEmpty ? email : name),
-      style: AppTheme.serif(fontSize: 32, color: AppColors.primary),
+      style: AppTheme.number(fontSize: 32, color: AppColors.primary),
     );
 
     return Scaffold(
@@ -375,7 +375,7 @@ class _StatsCard extends StatelessWidget {
         ),
         child: Column(
           children: [
-            Text(value, style: AppTheme.serif(fontSize: 36, color: color)),
+            Text(value, style: AppTheme.number(fontSize: 36, color: color)),
             Text(
               label,
               style: textTheme.bodyMedium?.copyWith(color: AppColors.textMuted),
@@ -444,7 +444,7 @@ class _StatsCard extends StatelessWidget {
                         ),
                         Text(
                           stats!.wasteReducedLabel,
-                          style: AppTheme.serif(
+                          style: AppTheme.number(
                             fontSize: 28,
                             color: AppColors.freshText,
                           ),
