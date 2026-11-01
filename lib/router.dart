@@ -1,7 +1,7 @@
 import 'dart:async';
 
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:flutter/foundation.dart';
+import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
 import 'models/item_prefill.dart';
@@ -57,27 +57,68 @@ final appRouter = GoRouter(
     ),
 
     // หน้าที่กดเข้าไป (ไม่มี bottom nav) — '/item/new' ต้องอยู่ก่อน '/item/:id'
-    GoRoute(path: '/scan', builder: (context, state) => const ScanScreen()),
+    GoRoute(
+      path: '/scan',
+      pageBuilder: (context, state) =>
+          _transitionPage(state, const ScanScreen(), slide: false),
+    ),
     GoRoute(
       path: '/item/new',
       // มาจากหน้า Scan จะส่งบาร์โค้ด/ชื่อ/รูปมาใน extra (กรอกเองจะเป็น null)
-      builder: (context, state) =>
-          ItemFormScreen(prefill: state.extra as ItemPrefill?),
+      pageBuilder: (context, state) => _transitionPage(
+        state,
+        ItemFormScreen(prefill: state.extra as ItemPrefill?),
+      ),
     ),
     GoRoute(
       path: '/item/:id',
-      builder: (context, state) =>
-          ItemDetailScreen(itemId: state.pathParameters['id']!),
+      pageBuilder: (context, state) => _transitionPage(
+        state,
+        ItemDetailScreen(itemId: state.pathParameters['id']!),
+      ),
       routes: [
         GoRoute(
           path: 'edit',
-          builder: (context, state) =>
-              ItemFormScreen(itemId: state.pathParameters['id']!),
+          pageBuilder: (context, state) => _transitionPage(
+            state,
+            ItemFormScreen(itemId: state.pathParameters['id']!),
+          ),
         ),
       ],
     ),
   ],
 );
+
+/// เปลี่ยนหน้าแบบจางเข้า + เลื่อนขึ้นเล็กน้อย (หน้า Scan ใช้แค่จาง เพราะเป็นกล้องเต็มจอ)
+/// ใช้ CustomTransitionPage แทน builder ปกติ เพื่อกำหนดแอนิเมชันเองได้
+CustomTransitionPage<void> _transitionPage(
+  GoRouterState state,
+  Widget child, {
+  bool slide = true,
+}) {
+  return CustomTransitionPage<void>(
+    key: state.pageKey,
+    child: child,
+    transitionDuration: const Duration(milliseconds: 350),
+    reverseTransitionDuration: const Duration(milliseconds: 250),
+    transitionsBuilder: (context, animation, secondaryAnimation, child) {
+      final curved = CurvedAnimation(
+        parent: animation,
+        curve: Curves.easeOutCubic,
+        reverseCurve: Curves.easeInCubic,
+      );
+      final faded = FadeTransition(opacity: curved, child: child);
+      if (!slide) return faded;
+      return SlideTransition(
+        position: Tween(
+          begin: const Offset(0, 0.06),
+          end: Offset.zero,
+        ).animate(curved),
+        child: faded,
+      );
+    },
+  );
+}
 
 /// แปลง Stream ของ authStateChanges ให้เป็น Listenable ที่ GoRouter ฟังได้
 class _AuthStateListenable extends ChangeNotifier {

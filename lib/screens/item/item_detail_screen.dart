@@ -10,6 +10,7 @@ import '../../services/settings_service.dart';
 import '../../theme/app_colors.dart';
 import '../../theme/app_theme.dart';
 import '../../utils/date_format.dart';
+import '../../widgets/animated_number.dart';
 import '../../widgets/category_icon.dart';
 import '../../widgets/local_image.dart';
 
@@ -306,19 +307,23 @@ class _FreshnessBanner extends StatelessWidget {
                   ],
                 ),
               ),
-              Text(
-                '${(_freshness * 100).round()}%',
+              AnimatedCount(
+                value: (_freshness * 100).round(),
+                suffix: '%',
                 style: AppTheme.number(fontSize: 28, color: strongColor),
               ),
             ],
           ),
           const SizedBox(height: 16),
-          LinearProgressIndicator(
+          AnimatedFraction(
             value: _freshness,
-            minHeight: 8,
-            borderRadius: BorderRadius.circular(999),
-            color: AppColors.statusColor(status.level),
-            backgroundColor: AppColors.surface,
+            builder: (context, value) => LinearProgressIndicator(
+              value: value,
+              minHeight: 8,
+              borderRadius: BorderRadius.circular(999),
+              color: AppColors.statusColor(status.level),
+              backgroundColor: AppColors.surface,
+            ),
           ),
           const SizedBox(height: 8),
           Row(

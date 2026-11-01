@@ -9,6 +9,7 @@ import '../../theme/app_colors.dart';
 import '../../theme/app_theme.dart';
 import '../../utils/date_format.dart';
 import '../../utils/expiry_status.dart';
+import '../../widgets/animated_number.dart';
 import '../../widgets/app_logo.dart';
 import '../../widgets/item_card.dart';
 
@@ -207,12 +208,16 @@ class _HomeContent extends StatelessWidget {
                   ),
           )
         else
-          for (final item in items)
-            Padding(
-              padding: const EdgeInsets.only(bottom: 12),
-              child: ItemCard(
-                item: item,
-                onTap: () => context.push('/item/${item.id}'),
+          for (final (index, item) in items.indexed)
+            FadeSlideIn(
+              key: ValueKey(item.id),
+              index: index,
+              child: Padding(
+                padding: const EdgeInsets.only(bottom: 12),
+                child: ItemCard(
+                  item: item,
+                  onTap: () => context.push('/item/${item.id}'),
+                ),
               ),
             ),
         const SizedBox(height: 16),
@@ -221,7 +226,7 @@ class _HomeContent extends StatelessWidget {
           builder: (context, snapshot) {
             final stats = snapshot.data;
             if (stats == null) return const SizedBox.shrink();
-            return _WasteCard(label: stats.wasteReducedLabel);
+            return _WasteCard(stats: stats);
           },
         ),
       ],
@@ -271,15 +276,18 @@ class _SummaryCard extends StatelessWidget {
             Row(
               crossAxisAlignment: CrossAxisAlignment.end,
               children: [
-                Text('${items.length}', style: AppTheme.number(fontSize: 40)),
+                AnimatedCount(
+                  value: items.length,
+                  style: AppTheme.number(fontSize: 40),
+                ),
                 const SizedBox(width: 6),
                 Padding(
                   padding: const EdgeInsets.only(bottom: 8),
                   child: Text('ชิ้นในตู้เย็น', style: textTheme.bodyMedium),
                 ),
                 const SizedBox(width: 20),
-                Text(
-                  '$nearExpiryCount',
+                AnimatedCount(
+                  value: nearExpiryCount,
                   style: AppTheme.number(
                     fontSize: 40,
                     color: AppColors.urgentText,
@@ -294,25 +302,35 @@ class _SummaryCard extends StatelessWidget {
             ),
             const SizedBox(height: 16),
             if (items.isNotEmpty)
-              ClipRRect(
-                borderRadius: BorderRadius.circular(999),
-                child: SizedBox(
-                  height: 8,
-                  child: Row(
-                    children: [
-                      for (final (level, count) in [
-                        (ExpiryLevel.fresh, freshCount),
-                        (ExpiryLevel.soon, soonCount),
-                        (ExpiryLevel.urgent, urgentCount),
-                      ])
-                        if (count > 0)
-                          Expanded(
-                            flex: count,
-                            child: Container(
-                              color: AppColors.statusColor(level),
-                            ),
-                          ),
-                    ],
+              // แถบค่อย ๆ ยืดออกจากซ้ายไปขวา
+              AnimatedFraction(
+                value: 1,
+                builder: (context, t) => Align(
+                  alignment: Alignment.centerLeft,
+                  child: FractionallySizedBox(
+                    widthFactor: t.clamp(0.0, 1.0),
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(999),
+                      child: SizedBox(
+                        height: 8,
+                        child: Row(
+                          children: [
+                            for (final (level, count) in [
+                              (ExpiryLevel.fresh, freshCount),
+                              (ExpiryLevel.soon, soonCount),
+                              (ExpiryLevel.urgent, urgentCount),
+                            ])
+                              if (count > 0)
+                                Expanded(
+                                  flex: count,
+                                  child: Container(
+                                    color: AppColors.statusColor(level),
+                                  ),
+                                ),
+                          ],
+                        ),
+                      ),
+                    ),
                   ),
                 ),
               )
@@ -352,9 +370,9 @@ class _SummaryCard extends StatelessWidget {
 
 /// การ์ด "ลดขยะอาหารได้ X%" — ตัวเลขเดียวกับหน้า Profile (ใช้ MonthStats ตัวเดียวกัน)
 class _WasteCard extends StatelessWidget {
-  final String label;
+  final MonthStats stats;
 
-  const _WasteCard({required this.label});
+  const _WasteCard({required this.stats});
 
   @override
   Widget build(BuildContext context) {
@@ -375,8 +393,8 @@ class _WasteCard extends StatelessWidget {
                 ),
               ),
             ),
-            Text(
-              label,
+            AnimatedWastePercent(
+              stats: stats,
               style: AppTheme.number(fontSize: 28, color: AppColors.freshText),
             ),
           ],

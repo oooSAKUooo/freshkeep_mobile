@@ -13,6 +13,7 @@ import '../../services/settings_service.dart';
 import '../../theme/app_colors.dart';
 import '../../theme/app_theme.dart';
 import '../../utils/validators.dart';
+import '../../widgets/animated_number.dart';
 import '../../widgets/app_logo.dart';
 import '../../widgets/local_image.dart';
 
@@ -366,7 +367,7 @@ class _StatsCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
 
-    Widget number(String label, String value, Color color) => Expanded(
+    Widget number(String label, int value, Color color) => Expanded(
       child: Container(
         padding: const EdgeInsets.symmetric(vertical: 16),
         decoration: BoxDecoration(
@@ -375,7 +376,10 @@ class _StatsCard extends StatelessWidget {
         ),
         child: Column(
           children: [
-            Text(value, style: AppTheme.number(fontSize: 36, color: color)),
+            AnimatedCount(
+              value: value,
+              style: AppTheme.number(fontSize: 36, color: color),
+            ),
             Text(
               label,
               style: textTheme.bodyMedium?.copyWith(color: AppColors.textMuted),
@@ -408,13 +412,9 @@ class _StatsCard extends StatelessWidget {
             else ...[
               Row(
                 children: [
-                  number(
-                    'กินหมดแล้ว',
-                    '${stats!.consumed}',
-                    AppColors.freshText,
-                  ),
+                  number('กินหมดแล้ว', stats!.consumed, AppColors.freshText),
                   const SizedBox(width: 12),
-                  number('ทิ้ง', '${stats!.discarded}', AppColors.urgentText),
+                  number('ทิ้ง', stats!.discarded, AppColors.urgentText),
                 ],
               ),
               const SizedBox(height: 12),
@@ -442,8 +442,8 @@ class _StatsCard extends StatelessWidget {
                             ),
                           ),
                         ),
-                        Text(
-                          stats!.wasteReducedLabel,
+                        AnimatedWastePercent(
+                          stats: stats!,
                           style: AppTheme.number(
                             fontSize: 28,
                             color: AppColors.freshText,
@@ -454,11 +454,14 @@ class _StatsCard extends StatelessWidget {
                     const SizedBox(height: 12),
                     ClipRRect(
                       borderRadius: BorderRadius.circular(999),
-                      child: LinearProgressIndicator(
+                      child: AnimatedFraction(
                         value: stats!.wasteReducedFraction,
-                        minHeight: 8,
-                        backgroundColor: AppColors.surface,
-                        color: AppColors.primary,
+                        builder: (context, value) => LinearProgressIndicator(
+                          value: value,
+                          minHeight: 8,
+                          backgroundColor: AppColors.surface,
+                          color: AppColors.primary,
+                        ),
                       ),
                     ),
                   ],
